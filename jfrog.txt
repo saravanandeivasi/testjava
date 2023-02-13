@@ -1,0 +1,84 @@
+Setup JFrog Artifactory on Ubuntu 18.0.4 using Docker | Install JFrog Artifactory on Ubuntu 
+Artifactory is one of the popular Binary repository manager. It is Java based tool, used for storing artifacts. Artifactory can be integrated with many Continuous integration and Continuous delivery tools. Artifactory is mainly used by Ant, Maven and Gradle build tools.
+
+Let us see how to configure Artifactory on Ubuntu 18.0.4 using Docker. We will configure Artifactory by doing the three steps:
+
+1. Install Docker on Ubuntu 18.0.4
+2. Download Artifactory image
+3. Spin up a container using the Artifactory image 
+Pre-requistes:
+Choose at least small or medium instance type (2GB RAM)
+ports 8081 and 8082 needs to be opened.
+8081 for Artifactory REST APIs.
+8082 for everything else (UI, and all other product’s APIs). 
+1. Install Docker on Ubuntu
+sudo apt-get update && sudo apt install docker.io -y
+
+If you would like to use Docker as a non-root user, you should now consider adding your user to the “docker” group with something like:
+sudo usermod -aG docker $USER
+ 
+Run the command below to see a version of docker installed.  
+docker --version
+Step 2: Download Artifactory Docker image
+There are different editions of JFrog Artifactory available, let us use open source version.
+
+Pull the latest Docker image of JFrog Artifactory.
+sudo docker pull docker.bintray.io/jfrog/artifactory-oss:latest
+
+Display docker images
+sudo docker images
+
+Step 3: Create Data Directory
+Create data directory on host system to ensure data used on container is persistent.
+sudo mkdir -p /jfrog/artifactory
+sudo chown -R 1030 /jfrog/
+Step 4: Start JFrog Artifactory container
+To start an Artifactory container, use the command:
+sudo docker run --name artifactory -d -p 8081:8081 -p 8082:8082 \
+-v /jfrog/artifactory:/var/opt/jfrog/artifactory \
+docker.bintray.io/jfrog/artifactory-oss:latest
+
+
+Step 5: Run Artifactory as a service
+sudo vi /etc/systemd/system/artifactory.service
+ # Copy the below code highlighted in green 
+
+[Unit]
+Description=Setup Systemd script for Artifactory Container
+After=network.target
+
+[Service]
+Restart=always
+ExecStartPre=-/usr/bin/docker kill artifactory
+ExecStartPre=-/usr/bin/docker rm artifactory
+ExecStart=/usr/bin/docker run --name artifactory -p 8081:8081 -p 8082:8082 \
+  -v /jfrog/artifactory:/var/opt/jfrog/artifactory \
+  docker.bintray.io/jfrog/artifactory-oss:latest
+ExecStop=-/usr/bin/docker kill artifactory
+ExecStop=-/usr/bin/docker rm artifactory
+
+[Install]
+WantedBy=multi-user.target 
+
+Reload Systemd
+sudo systemctl daemon-reload
+
+Then start Artifactory container with systemd.
+sudo systemctl start artifactory
+Enable it to start at system boot.
+sudo systemctl enable artifactory
+Check whether Artifactory is running?  
+sudo systemctl status artifactory
+Step 6: Access Artifactory Web Interface
+http://server_url:8081/﻿ 
+You should see Artifactory welcome page like below.
+Step 7: Login to Artifactory
+Login with default username and password which is admin/password
+
+After Login, click on Get started. Now reset admin password. Enter Admin$321/Admin$321
+kip for base URL and skip proxy setup
+Click Next
+That's it! Artifactory is setup successfully.
+
+
+ 
